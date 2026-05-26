@@ -8,7 +8,7 @@ import json
 # =====================================================================
 # [Key 설정 구역] 구글 API 키만 입력하세요.
 # =====================================================================
-GOOGLE_API_KEY = "AIzaSyCU2OnZk1lo-haVdTDCUnM6kquZj4JLFpg"
+GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
 genai.configure(api_key=GOOGLE_API_KEY)
 
 # 사장님이 발급받으신 국가기술표준원 공식 서비스 ID (AuthKey)

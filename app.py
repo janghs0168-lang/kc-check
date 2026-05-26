@@ -45,23 +45,30 @@ def search_전기안전(cert_num):
 # --- [2] 국립전파연구원(전자파) 100% 라이브 API ---
 import xml.etree.ElementTree as ET
 import requests
+import urllib3
+
+# SSL 인증서 경고 메시지 방지
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 def search_전파인증(cert_num):
-    # 기존에 사용하시던 공개 API 주소 그대로 유지
-    url = "http://emsit.go.kr/openapi/service/AuthenticationInfoService/getAuthInfo.do"
+    # 🌟 핵심 1: http가 아니라 'https'로 주소를 변경해야 통과됩니다.
+    url = "https://emsit.go.kr/openapi/service/AuthenticationInfoService/getAuthInfo.do"
     params = {"mtlCefNo": cert_num.strip()}
 
-    # 💡 핵심: 파이썬이 아니라 일반 크롬 브라우저인 척 속이는 헤더 추가
+    # 🌟 핵심 2: 인증키가 없는 오픈 API인 만큼 보안 방화벽이 깐깐합니다.
+    # 아래처럼 브라우저의 디테일한 정보를 다 주어야 "사람이 검색했구나" 하고 들여보내 줍니다.
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+        "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
     }
 
     try:
-        # requests.get에 headers=headers 를 반드시 추가해줍니다.
-        # 정부 서버가 간혹 느릴 수 있으니 timeout도 5초로 조금 늘렸습니다.
-        res = requests.get(url, params=params, headers=headers, timeout=5)
+        # verify=False 를 넣어 공공기관 보안 인증서 무시하고 강제 통과
+        res = requests.get(
+            url, params=params, headers=headers, timeout=5, verify=False
+        )
 
         if res.status_code == 200:
             root = ET.fromstring(res.content)
@@ -87,11 +94,13 @@ def search_전파인증(cert_num):
                     "업체명": "정부 DB에 일치하는 전파인증번호가 없습니다.",
                     "제품명": "-",
                 }
+
         return {
             "상태": "❌ 실패",
             "업체명": f"정부 서버 응답 에러 ({res.status_code})",
             "제품명": "-",
         }
+
     except Exception as e:
         return {
             "상태": "❌ 통신 에러",

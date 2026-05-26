@@ -43,22 +43,61 @@ def search_전기안전(cert_num):
 
 
 # --- [2] 국립전파연구원(전자파) 100% 라이브 API ---
+import xml.etree.ElementTree as ET
+import requests
+
+
 def search_전파인증(cert_num):
+    # 기존에 사용하시던 공개 API 주소 그대로 유지
     url = "http://emsit.go.kr/openapi/service/AuthenticationInfoService/getAuthInfo.do"
-    params = {'mtlCefNo': cert_num.strip()}
+    params = {"mtlCefNo": cert_num.strip()}
+
+    # 💡 핵심: 파이썬이 아니라 일반 크롬 브라우저인 척 속이는 헤더 추가
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+    }
+
     try:
-        res = requests.get(url, params=params, timeout=3)
+        # requests.get에 headers=headers 를 반드시 추가해줍니다.
+        # 정부 서버가 간혹 느릴 수 있으니 timeout도 5초로 조금 늘렸습니다.
+        res = requests.get(url, params=params, headers=headers, timeout=5)
+
         if res.status_code == 200:
             root = ET.fromstring(res.content)
-            if root.find('.//resultCode').text == "0000":
-                company = root.find('.//bsmNm').text if root.find('.//bsmNm') is not None else "업체명 없음"
-                product = root.find('.//mtlNm').text if root.find('.//mtlNm') is not None else "제품명 없음"
-                return {"상태": "🟢 적합등록 완료", "업체명": company, "제품명": product}
-            elif root.find('.//resultCode').text == "0001":
-                return {"상태": "❌ 조회 실패", "업체명": "정부 DB에 일치하는 전파인증번호가 없습니다.", "제품명": "-"}
-        return {"상태": "❌ 실패", "업체명": f"정부 서버 응답 에러 ({res.status_code})", "제품명": "-"}
+            if root.find(".//resultCode").text == "0000":
+                company = (
+                    root.find(".//bsmNm").text
+                    if root.find(".//bsmNm") is not None
+                    else "업체명 없음"
+                )
+                product = (
+                    root.find(".//mtlNm").text
+                    if root.find(".//mtlNm") is not None
+                    else "제품명 없음"
+                )
+                return {
+                    "상태": "🟢 적합등록 완료",
+                    "업체명": company,
+                    "제품명": product,
+                }
+            elif root.find(".//resultCode").text == "0001":
+                return {
+                    "상태": "❌ 조회 실패",
+                    "업체명": "정부 DB에 일치하는 전파인증번호가 없습니다.",
+                    "제품명": "-",
+                }
+        return {
+            "상태": "❌ 실패",
+            "업체명": f"정부 서버 응답 에러 ({res.status_code})",
+            "제품명": "-",
+        }
     except Exception as e:
-        return {"상태": "❌ 통신 에러", "업체명": f"연결 실패: {str(e)}", "제품명": "-"}
+        return {
+            "상태": "❌ 통신 에러",
+            "업체명": f"연결 실패: {str(e)}",
+            "제품명": "-",
+        }
 
 
 # =====================================================================
